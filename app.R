@@ -19,12 +19,20 @@ library(sf)
 library(leaflet)
 library(DT)
 
+## The countries R object contains spatial data needed to draw the map
 
 load("countries.rda")
+
+# The WDI package provides direct access to the 
+# data  here 
+# http://datatopics.worldbank.org/world-development-indicators/
+
 library(WDI)
 wd <- WDI(country="all", indicator=c( "SP.POP.TOTL", "SP.POP.65UP.TO.ZS"), start=2018, end=2018, extra = TRUE)
 wd<-wd[c(1,4,5)]
 names(wd)[2:3] <-c("pop","p_over_65")
+
+## A small function to ensure that the data tables have download buttons
 
 dt<-function(d) {DT::datatable(d, 
                            filter = "top",                         
@@ -33,6 +41,9 @@ dt<-function(d) {DT::datatable(d,
                              buttons = c('copy', 'csv', 'excel'), colReorder = TRUE
                            ))}
 
+## The jh_data function was cobbled together in parts while tying to scrape and reshape the data from the gthub repository
+# Johns Hopkins have changed the format twice since they started publishing it.
+# No guarantee that they won't again, so not worth making the function more elegant!
 
 jh_data <- function(){
   
@@ -77,14 +88,20 @@ jh_data <- function(){
 
 df<-jh_data()
 
-#save(df,file=sprintf("df%s.rda",Sys.Date() ))
+# Good idea to periodically save the data, ready for the day that JHs site goes down for ever!
+
+# save(df,file=sprintf("df%s.rda",Sys.Date() ))
 df %>% mutate(Daily_deaths = NDeaths - lag(NDeaths, default = first(NDeaths))) %>% arrange(NDeaths) -> df
 
 df %>% group_by(Country) %>% summarise( max=max(NDeaths)) %>% arrange(-max) %>% mutate(Country = factor(Country, Country)) -> tmp
 c_options<-levels(tmp$Country)
 
 df %>% mutate(Daily_deaths = NDeaths - lag(NDeaths, default = first(NDeaths))) %>% arrange(Daily_deaths) -> df
+
+## The jh_iso file is just a list of countries and their corresonding codes, used for merging
+## Some still need correction 
 load("jh_iso.rda")
+## Some corrections of the jh_isos 
 jh_iso$iso2c[jh_iso$Country=="Serbia"] <-"CS"
 jh_iso$iso2c[jh_iso$Country=="Holy See"] <-NA
 jh_iso$iso2c[jh_iso$Country=="France"]<-"FR"
@@ -227,14 +244,14 @@ server <- function(input, output) {
    })
    
    
-   output$data = renderDT({
+   output$data = renderDT(server=FALSE,{
      countries<-input$country
      d %>% filter(Country %in% countries) %>% arrange(desc(Date)) %>% filter(Date > as.Date("2020-03-01") ) ->dd
      dt(dd)
    })
      
    
-   output$data2 =renderDT({
+   output$data2 =renderDT(server=FALSE,{
      df2 %>% filter(Date==max(Date)) %>% 
        dt()
    })
