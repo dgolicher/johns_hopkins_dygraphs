@@ -1,5 +1,8 @@
 # Johns Hopkins Covid-19 dygraphs
 
+Run the app here:
+
+https://dgolicher.shinyapps.io/Johns_hopkins_dygraphs/
 
 The shiny app runs by scraping data from 
 
