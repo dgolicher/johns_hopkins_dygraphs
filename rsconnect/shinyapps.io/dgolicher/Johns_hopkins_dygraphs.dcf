@@ -1,0 +1,12 @@
+name: Johns_hopkins_dygraphs
+title: Johns_hopkins_dygraphs
+username:
+account: dgolicher
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2352732
+bundleId: 3187139
+url: https://dgolicher.shinyapps.io/Johns_hopkins_dygraphs/
+when: 1590405181.08391
+asMultiple: FALSE
+asStatic: FALSE
