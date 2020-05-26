@@ -18,6 +18,7 @@ library(mapview)
 library(sf)
 library(leaflet)
 library(DT)
+library(easynls)
 
 ## The countries R object contains spatial data needed to draw the map
 
@@ -26,6 +27,21 @@ load("countries.rda")
 # The WDI package provides direct access to the 
 # data  here 
 # http://datatopics.worldbank.org/world-development-indicators/
+
+tryObserve <- function(x) {
+  x <- substitute(x)
+  env <- parent.frame()
+  observe({
+    tryCatch(
+      eval(x, env),
+      error = function(e) {
+        showNotification(paste("Error: ", e$message), type = "error")
+      }
+    )
+  })
+}
+
+
 
 library(WDI)
 wd <- WDI(country="all", indicator=c( "SP.POP.TOTL", "SP.POP.65UP.TO.ZS"), start=2018, end=2018, extra = TRUE)
@@ -90,7 +106,7 @@ df<-jh_data()
 
 # Good idea to periodically save the data, ready for the day that JHs site goes down for ever!
 
-# save(df,file=sprintf("df%s.rda",Sys.Date() ))
+save(df,file=sprintf("df%s.rda",Sys.Date() ))
 df %>% mutate(Daily_deaths = NDeaths - lag(NDeaths, default = first(NDeaths))) %>% arrange(NDeaths) -> df
 
 df %>% group_by(Country) %>% summarise( max=max(NDeaths)) %>% arrange(-max) %>% mutate(Country = factor(Country, Country)) -> tmp
@@ -121,6 +137,10 @@ pal1<-brewer.pal(8, "YlOrRd")
 pal2<-brewer.pal(8, "YlGnBu")[8:1]
 pal3<-brewer.pal(8, "YlOrRd")[8:1]
 map_data<-merge(countries, dd)
+
+
+### Test
+
 
 
 
@@ -163,8 +183,14 @@ ui <- fluidPage(
                              dygraphOutput("cumcases10k")),
                     
                     tabPanel("Deaths per 10k of the over 65s", 
-                             dygraphOutput("deaths10k"),
-                             dygraphOutput("cumdeaths10k")),
+                             dygraphOutput("deaths10k")),
+                    
+                    tabPanel("Gompertz fit", 
+                             h5("This is simple curve fitting. Do not interpret the output as a predictive model!"),
+                             h6("Uses non linear least squares to fit Gompertz to cumulative deaths per 100 thousand of the total population"),
+                             h6("Note that fitting may throw errors if the model does not converge."),
+                             plotOutput("gplot"),
+                             verbatimTextOutput  ("results")),
                     
                     
                     tabPanel("Time series for country",  DTOutput('data')),
@@ -261,7 +287,33 @@ server <- function(input, output) {
     m<- mapview(map_data,zcol="NDeathsp65", at =c(0,10,20,100,150,200,250,300,500),legend=TRUE,col.regions = pal1) 
     m@map
    })
+   
+   
+   tryObserve({
+     countries<-input$country
+     sdate<-input$sdate
+     d %>% filter(Country %in% countries) %>% arrange(Date) %>% filter(Date > sdate ) ->dd
+     days<-length(dd$NDeaths)
+     gdata<-data.frame(days=1:days, deaths= dd$NDeaths /(dd$pop/100000))
+
+     model2 = nlsfit(gdata, model = 10, start = c(a = 200, b = 17, c = 0.06))
+     output$results <- renderPrint(model2)
+
+     output$gplot<- renderPlot({
+     nlsplot(gdata, model = 10, start = c(a = 200, b = 17, c = 0.06),
+             xlab = "Days" , ylab = "Cumulative number of deaths per 100k of total population", position = 1)
+     })
+   })
+   
 }
+
+
+
+
+
+
+
+
 
 # Run the application 
 shinyApp(ui = ui, server = server)

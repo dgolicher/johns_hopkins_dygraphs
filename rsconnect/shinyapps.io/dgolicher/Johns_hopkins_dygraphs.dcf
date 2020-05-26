@@ -5,8 +5,8 @@ account: dgolicher
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 2352732
-bundleId: 3187290
+bundleId: 3190680
 url: https://dgolicher.shinyapps.io/Johns_hopkins_dygraphs/
-when: 1590408748.17458
+when: 1590493714.8459
 asMultiple: FALSE
 asStatic: FALSE
